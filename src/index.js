@@ -34,16 +34,23 @@ app.post('/users', (request, response) => {
 
   const {name, username } = request.body;
 
-  const user = {
+  const userAlreadyExists = users.find((user) => user.username === username)
+  if (userAlreadyExists){
+    return response.status(400).json({
+      error: 'User already exists'
+    })
+  }
+
+  const newUser = {
     id: uuidv4(),
     name,
     username,
     todos: []
   }
 
-  users.push(user)
+  users.push(newUser)
 
-  return response.status(200).json(user)
+  return response.status(201).json(newUser)
 
 });
 
@@ -69,23 +76,70 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
   }
    user.todos.push(newTodo)
 
-   return response.status(200).json(newTodo)
+   return response.status(201).json(newTodo)
 
 });
 
+function getTodoToUpdate(user, id){
+  const todo = user.todos.find((todo) => todo.id === id)
+  return todo
+}
+
 app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+  const { user } = request;
+  const { id } = request.params;
+  const { title, deadline } = request.body;
+
+  const todo = getTodoToUpdate(user, id);
+  
+  if (!todo){
+    return response.status(404).json({
+      error: "Todo does not exists"
+    })
+  }
+
+  todo.title = title,
+  todo.deadline= deadline;
+
+  return response.status(201).json(todo);
+
+
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+  const { user } = request;
+  const { id } = request.params;
+
+  const todoToPatch = getTodoToUpdate(user, id);
+
+  if (!todoToPatch){
+    return response.status(404).json({
+      error: "Todo does not exists"
+    })
+  }
+  
+  todoToPatch.done = true;
+
+  return response.status(201).json(todoToPatch)
 });
 
-app.post("/teste", (req, res) => {
-  console.log(req.body)
-})
 app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+
+  const { user } = request;
+  const { id } = request.params;
+
+  const todoToDelete = getTodoToUpdate(user, id)
+
+  if (!todoToDelete){
+    return response.status(404).json({
+      error: "Todo does not exists"
+    })
+  }
+
+  user.todos.splice(todoToDelete, 1)
+
+  return response.status(204).send(user)
+
 });
 
 module.exports = app;
